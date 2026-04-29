@@ -4,6 +4,11 @@ from mouse import WheelEvent
 from PIL import ImageGrab
 import time
 
+# Copy to clipboard
+import win32clipboard as clip
+import win32con
+from io import BytesIO
+
 iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
 
 def on_scroll(event):
@@ -21,6 +26,22 @@ def on_scroll(event):
         elif event.delta < 0:  # Scroll down
             iRank -= 1
             print(f"iRank decremented: {iRank}")
+
+def copyToClipboard(img):
+    """
+    Copy image to clipboard.
+    Args:
+        img (PIL.Image.Image): image of current screen
+    """
+    output = BytesIO()  # create a BytesIO buffer to hold image data
+    img.convert('RGB').save(output, 'BMP')  # convert image to RGB format and save as BMP to the buffer
+    data = output.getvalue()[14:]  # extract BMP data, skipping the 14-byte BMP header
+    output.close()  # close the buffer
+
+    clip.OpenClipboard()  # open the Windows clipboard
+    clip.EmptyClipboard()  # clear any existing clipboard contents
+    clip.SetClipboardData(win32con.CF_DIB, data)  # set the clipboard data to the DIB format image
+    clip.CloseClipboard()  # close the clipboard
 
 def getWindows(img):
     """
@@ -55,9 +76,10 @@ while True:
     # Save snap if left-click is detected
     if mouse.is_pressed("left"):
         print("\nLeft-click detected. Exiting...")
-        # crop() # crop img to region defined by current window
+        screenshot = screen.crop(currentWindow) # crop img to region defined by current window
         # tag() # tag the img
         # save() # save the img
+        copyToClipboard(screenshot) # copy screenshot to clipboard
         mouse.unhook_all()
         break
 
