@@ -11,6 +11,14 @@ from io import BytesIO
 
 iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
 
+class Window:
+    def __init__(self, bbox=(0,0,0,0)):
+        self.bbox = bbox # (left, top, right, bottom), (x0, y0, x1, y1) where 0 is the top-left corner and 1 is the bottom-right corner of the bounding box
+        self.area = self.calcArea() # area of the bounding box
+
+    def calcArea(self):
+        return (self.bbox[2] - self.bbox[0])*(self.bbox[3] - self.bbox[1]) # (x1 - x0)*(y1 - y0)
+
 def on_scroll(event):
     """
     Callback function triggered when the mouse is scrolled.
@@ -49,7 +57,7 @@ def getWindows(img):
         img (PIL.Image.Image): image of current screen
     """
     bbox = img.getbbox() # temp return full screen bbox
-    windows = [bbox]
+    windows = [Window(bbox)]
     
     return windows
 
@@ -76,7 +84,7 @@ while True:
     # Save snap if left-click is detected
     if mouse.is_pressed("left"):
         print("\nLeft-click detected. Exiting...")
-        screenshot = screen.crop(currentWindow) # crop img to region defined by current window
+        screenshot = screen.crop(currentWindow.bbox) # crop img to region defined by current window
         # tag() # tag the img
         # save() # save the img
         copyToClipboard(screenshot) # copy screenshot to clipboard
