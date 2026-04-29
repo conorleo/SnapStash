@@ -1,5 +1,6 @@
 import keyboard
 import mouse
+from mouse import WheelEvent
 import time
 
 iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
@@ -12,12 +13,13 @@ def on_scroll(event):
     Scroll down decrements iRank by 1.
     """
     global iRank
-    if event.delta > 0:  # Scroll up
-        iRank += 1
-        print(f"iRank incremented: {iRank}")
-    elif event.delta < 0:  # Scroll down
-        iRank -= 1
-        print(f"iRank decremented: {iRank}")
+    if isinstance(event, WheelEvent): # only action interactions with the scroll wheel
+        if event.delta > 0:  # Scroll up
+            iRank += 1
+            print(f"iRank incremented: {iRank}")
+        elif event.delta < 0:  # Scroll down
+            iRank -= 1
+            print(f"iRank decremented: {iRank}")
 
 # getScreen() # capture current screen
 
@@ -26,7 +28,7 @@ def on_scroll(event):
 # arrange windows in order of increasing area
 
 # Hook scroll events
-mouse.hook(on_scroll)
+mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving the cursor)
 
 while True:
     # Exit program if ESC key pressed
