@@ -1,5 +1,5 @@
 opencv-python   # edge detection
 mouse           # track mouse position and detect button/scroll interactions
 pillow          # take screenshots
-win32clipboard  # add imgs to clipboard
-tkinter         # GUI
+pywin32         # add imgs to clipboard
+tk              # GUI
