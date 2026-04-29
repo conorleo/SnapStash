@@ -1,6 +1,7 @@
 import keyboard
 import mouse
 from mouse import WheelEvent
+from PIL import ImageGrab
 import time
 
 iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
@@ -21,9 +22,23 @@ def on_scroll(event):
             iRank -= 1
             print(f"iRank decremented: {iRank}")
 
-# getScreen() # capture current screen
+def getWindows(img):
+    """
+    Args:
+        img (PIL.Image.Image): image of current screen
+    """
+    bbox = img.getbbox() # temp return full screen bbox
+    windows = [bbox]
+    
+    return windows
 
-# getWindows() # output list of windows identified in current screen
+def getCurrentWindow(windows, x, y, iRank):
+    return windows[0] # temp return first window
+
+
+screen = ImageGrab.grab() # capture current screen
+
+windows = getWindows(screen) # output list of windows identified in current screen
 
 # arrange windows in order of increasing area
 
@@ -51,7 +66,7 @@ while True:
 
     # getCursor() # return current position of cursor
 
-    # getCurrentWindow(windows,x,y,iRank)   # get currently selected window (input cursor position and currently selected bbox area ranking)
+    currentWindow = getCurrentWindow(windows,0,0,iRank)     # get currently selected window (input cursor position and currently selected bbox area ranking)
                                             # loop through all windows and update property in window object to indicate if the cursor is inside the window
                                             # output the bbox window with index iRank and capped iRank
 
