@@ -94,9 +94,11 @@ while True:
     # Temporarily add delay
     time.sleep(0.05)
 
-    # getCursor() # return current position of cursor
+    x, y = mouse.get_position() # return current position of cursor
+    # print(x)
+    # print(y)
 
-    currentWindow = getCurrentWindow(windows,0,0,iRank)     # get currently selected window (input cursor position and currently selected bbox area ranking)
+    currentWindow = getCurrentWindow(windows,x,y,iRank)     # get currently selected window (input cursor position and currently selected bbox area ranking)
                                             # loop through all windows and update property in window object to indicate if the cursor is inside the window
                                             # output the bbox window with index iRank and capped iRank
 
