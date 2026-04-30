@@ -1,5 +1,7 @@
 opencv-python   # edge detection
+matplotlib      # plotting
 mouse           # track mouse position and detect button/scroll interactions
+numpy           # arrays
 keyboard        # detect keyboard strokes
 pillow          # take screenshots
 pywin32         # add imgs to clipboard
