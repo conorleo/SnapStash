@@ -73,13 +73,13 @@ def getCurrentWindow(windows, x, y, iRank):
     """
     windowsContainingCursor = [window for window in windows if isCursorInWindow(window, x, y)] # isolate windows containing the cursor
 
+    if len(windowsContainingCursor) == 0:
+        return windows[-1] # return full screen (largest area) if cursor is not on the screen
+
     if iRank != 0: # prevent divide by zero error
         iRank = iRank % len(windowsContainingCursor) # wrap around to smallest bbox if number of valid windows is exceeded
     
-    if len(windowsContainingCursor) == 0:
-        return windows[-1] # return full screen (largest area) if cursor is not on the screen
-    else:
-        return windowsContainingCursor[iRank]
+    return windowsContainingCursor[iRank]
 
 
 screen = ImageGrab.grab() # capture current screen
