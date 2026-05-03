@@ -28,7 +28,7 @@ def poly2Rect(poly):
 
     return bbox
 
-def getEdges(img, ksize=7, isDebug=False):
+def getEdges(img, ksize=3, isDebug=False):
     """
     Detect horizontal anf vertical edges in image.
     Args:
@@ -45,15 +45,15 @@ def getEdges(img, ksize=7, isDebug=False):
     gray = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
 
     # Detect vertical edges 
-    # sobel_x = cv2.Sobel(gray, ddepth=cv2.CV_64F, dx=1, dy=0, ksize=ksize) # first derivative in x direction
-    # sobel_x = cv2.convertScaleAbs(sobel_x) # convert to absolute values (gradient can be negative)
+    sobel_x = cv2.Sobel(gray, ddepth=cv2.CV_64F, dx=1, dy=0, ksize=ksize) # first derivative in x direction
+    sobel_x = cv2.convertScaleAbs(sobel_x) # convert to absolute values (gradient can be negative)
 
-    # # Detect horizontal edges
-    # sobel_y = cv2.Sobel(gray, ddepth=cv2.CV_64F, dx=0, dy=1, ksize=ksize) # first derivative in y direction
-    # sobel_y = cv2.convertScaleAbs(sobel_y)
+    # Detect horizontal edges
+    sobel_y = cv2.Sobel(gray, ddepth=cv2.CV_64F, dx=0, dy=1, ksize=ksize) # first derivative in y direction
+    sobel_y = cv2.convertScaleAbs(sobel_y)
 
-    # edges = sobel_x + sobel_y
-    edges = cv2.Canny(gray, 50, 150) # Canny edge detection, min and max thresholds for edges
+    edges = cv2.bitwise_xor(sobel_x, sobel_y)
+    # edges = cv2.Canny(gray, 100, 150) # Canny edge detection, min and max thresholds for edges
 
     if isDebug:
         # plt.figure(figsize=(8, 6))
