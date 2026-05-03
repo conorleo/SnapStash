@@ -5,10 +5,29 @@ import numpy as np
 class Window:
     def __init__(self, bbox=(0,0,0,0)):
         self.bbox = bbox # (left, top, right, bottom), (x0, y0, x1, y1) where 0 is the top-left corner and 1 is the bottom-right corner of the bounding box
+        self.dx = self.bbox[2] - self.bbox[0] # horizontal side length, (x1 - x0)
+        self.dy = self.bbox[3] - self.bbox[1] # vertical side length, (y1 - y0)
         self.area = self.calcArea() # area of the bounding box
 
     def calcArea(self):
-        return (self.bbox[2] - self.bbox[0])*(self.bbox[3] - self.bbox[1]) # (x1 - x0)*(y1 - y0)
+        return self.dx*self.dy
+    
+    def plot(self):
+        x = [
+            self.bbox[0],           # top-left
+            self.bbox[0] + self.dx, # top-right
+            self.bbox[0] + self.dx, # bottom-right
+            self.bbox[0],           # bottom-left
+            self.bbox[0]            # repeat top-left
+        ]
+        y = [
+            self.bbox[1],           # top-left
+            self.bbox[1],           # top-right
+            self.bbox[1] + self.dy, # bottom-right
+            self.bbox[1] + self.dy, # bottom-left
+            self.bbox[1]            # repeat top-left
+        ]
+        plt.plot(x,y)
     
 
 def poly2Rect(poly):
@@ -141,6 +160,15 @@ def getWindows(img, isDebug=False):
 
     bbox += [img.getbbox()] # append full screen bbox
     windows = [Window(rect) for rect in bbox] # convert each bbox to window object
+
+    if isDebug:
+        plt.figure(figsize=(8, 6))
+        plt.imshow(img)
+        plt.title("Windows")
+        plt.axis("off")
+
+        for window in windows:
+            window.plot()
     
     return windows
 
