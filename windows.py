@@ -11,6 +11,23 @@ class Window:
         return (self.bbox[2] - self.bbox[0])*(self.bbox[3] - self.bbox[1]) # (x1 - x0)*(y1 - y0)
     
 
+def poly2Rect(poly):
+    """
+    Convert poly defined by four (x,y) pairs of vertices into rectangular bounding box, defined by (left, top, right, bottom) pixel locations.
+    Args:
+        poly (list): four (x,y) pairs of int values defining coordinates of each vertex of a polygon.
+    Returns:
+        bbox (tuple): four int values defining the top-left and bottom-right vertices of a rectangle, (left, top, right, bottom).
+    """
+    nVertices = 4
+    # Separate x and y pixel coordinates
+    x = [poly[i][0][0] for i in range(nVertices)]
+    y = [poly[i][0][1] for i in range(nVertices)]
+
+    bbox = (min(x), min(y), max(x), max(y))  # (left, top, right, bottom)
+
+    return bbox
+
 def getEdges(img, ksize=7, isDebug=False):
     """
     Detect horizontal anf vertical edges in image.
@@ -88,21 +105,23 @@ def getBoxes(contours, img, isDebug=False):
         bbox (list): List of bounding boxes each storing a list of four (x,y) int pairs defining vertex locations.
     """
     bbox = []
+    polys = []
     for contour in contours:
         # rectimate the contour to a polygon
         epsilon = 0.02 * cv2.arcLength(contour, True) # precision term that scales with the contour perimeter
-        rect = cv2.approxPolyDP(contour, epsilon, True) # list of four (x,y) pairs defining vertex locations
+        poly = cv2.approxPolyDP(contour, epsilon, True) # list of four (x,y) pairs defining vertex locations
                                                         # True => return only closed contours
         # Check if polygon has 4 vertices and is convex
-        if len(rect) == 4 and cv2.isContourConvex(rect):
-            x, y, w, h = cv2.boundingRect(rect)
+        if len(poly) == 4 and cv2.isContourConvex(poly):
+            x, y, w, h = cv2.boundingRect(poly)
 
             if w > 20 and h > 20:  # ignore very small shapes
-                bbox += [rect]
+                polys += [poly]
+                bbox += [poly2Rect(poly)]
     
     if isDebug:
         img_array = np.array(img)
-        cv2.drawContours(img_array, bbox, -1, (0, 255, 0), 3)
+        cv2.drawContours(img_array, polys, -1, (0, 255, 0), 3)
         cv2.imshow("Contours", img_array)
 
     return bbox
@@ -120,8 +139,8 @@ def getWindows(img, isDebug=False):
     contours    = getContours(edges, img, isDebug=isDebug)
     bbox        = getBoxes(contours, img, isDebug=isDebug)
 
-    bbox = img.getbbox() # temp return full screen bbox
-    windows = [Window(bbox)]
+    bbox += [img.getbbox()] # append full screen bbox
+    windows = [Window(rect) for rect in bbox] # convert each bbox to window object
     
     return windows
 
