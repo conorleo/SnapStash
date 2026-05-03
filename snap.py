@@ -53,7 +53,7 @@ screen = ImageGrab.grab() # capture current screen
 
 windows = getWindows(screen) # output list of windows identified in current screen
 
-# arrange windows in order of increasing area
+windows = sorted(windows, key=lambda window: window.area) # arrange windows in order of increasing area
 
 # Hook scroll events
 mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving the cursor)
