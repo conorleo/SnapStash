@@ -45,8 +45,41 @@ def copyToClipboard(img):
     clip.SetClipboardData(win32con.CF_DIB, data)  # set the clipboard data to the DIB format image
     clip.CloseClipboard()  # close the clipboard
 
+def isCursorInWindow(window, x, y):
+    """
+    Indicate if point x,y is inside the queried window.
+    Args:
+        window (Window): Window object.
+        x (int): x-position.
+        y (int): y-position.
+    Returns:
+        isInWindow (bool): True implies the point x,y is inside the window. False implies it is outside the window.
+    """
+    if x > window.bbox[0] and x < window.bbox[2] and y > window.bbox[1] and y < window.bbox[3]:
+        return True
+    else:
+        return False
+
 def getCurrentWindow(windows, x, y, iRank):
-    return windows[0] # temp return first window
+    """
+    Return currently selected window.
+    Args:
+        windows (list): List of Window objects present in current screenshot.
+        x (int): Cursor x-position on screen.
+        y (int): Cursor y-position on screen.
+        iRank (int): Index of windows list corresponding to current window.
+    Returns:
+        curr_window (Window): Current window.
+    """
+    windowsContainingCursor = [window for window in windows if isCursorInWindow(window, x, y)] # isolate windows containing the cursor
+
+    if iRank != 0: # prevent divide by zero error
+        iRank = iRank % len(windowsContainingCursor) # wrap around to smallest bbox if number of valid windows is exceeded
+    
+    if len(windowsContainingCursor) == 0:
+        return windows[-1] # return full screen (largest area) if cursor is not on the screen
+    else:
+        return windowsContainingCursor[iRank]
 
 
 screen = ImageGrab.grab() # capture current screen
