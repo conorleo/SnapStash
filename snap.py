@@ -18,17 +18,17 @@ def on_scroll(event):
     """
     Callback function triggered when the mouse is scrolled.
     event.delta > 0 means scroll up, event.delta < 0 means scroll down.
-    Scroll up increments iRank by 1.
-    Scroll down decrements iRank by 1.
+    Scroll up decrements iRank by 1 (zoom in)
+    Scroll down increments iRank by 1 (zoom out)
     """
     global iRank
     if isinstance(event, WheelEvent): # only action interactions with the scroll wheel
-        if event.delta > 0:  # Scroll up
-            iRank += 1
-            print(f"iRank incremented: {iRank}")
-        elif event.delta < 0:  # Scroll down
+        if event.delta > 0:  # Scroll up, zoom in
             iRank -= 1
             print(f"iRank decremented: {iRank}")
+        elif event.delta < 0:  # Scroll down, zoom out
+            iRank += 1
+            print(f"iRank incremented: {iRank}")
 
 def copyToClipboard(img):
     """
