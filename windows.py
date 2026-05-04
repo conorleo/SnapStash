@@ -30,6 +30,30 @@ class Window:
         plt.plot(x,y)
     
 
+def dispCurrentWindow(fig, currentWindow, img):
+    """
+    Grey out region around current window on-screen.
+    Args:
+        currentWindow (Window): Currently selected window for snipping with the cursor inside it.
+    """
+    rgb = np.array(img)
+    gray = cv2.cvtColor(rgb, cv2.COLOR_BGR2GRAY)
+    gray_rbg = np.stack((gray,)*3, axis=-1)  # make grayscale image 3-channel to accommodate later rgb addition
+
+    # replace current window with rgb image (surrounding area grayscale)
+    gray_rbg[currentWindow.bbox[1]:currentWindow.bbox[3]][currentWindow.bbox[0]:currentWindow.bbox[2]] = rgb[currentWindow.bbox[1]:currentWindow.bbox[3]][currentWindow.bbox[0]:currentWindow.bbox[2]]
+
+    ax = fig.gca()
+    ax.clear()
+    ax.axis('off')  # hide axes, ticks, and labels
+    ax.set_xlim(0, gray_rbg.shape[1])
+    ax.set_ylim(gray_rbg.shape[0], 0)
+    ax.imshow(gray_rbg)
+    currentWindow.plot() # plot bounding box perimeter
+    fig.canvas.draw_idle() # update fig
+    plt.pause(0.1) #  pause to allow fig to render
+
+
 def poly2Rect(poly):
     """
     Convert poly defined by four (x,y) pairs of vertices into rectangular bounding box, defined by (left, top, right, bottom) pixel locations.

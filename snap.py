@@ -1,4 +1,5 @@
 import keyboard
+import matplotlib.pyplot as plt
 import mouse
 from mouse import WheelEvent
 from PIL import ImageGrab
@@ -9,7 +10,7 @@ import win32clipboard as clip
 import win32con
 from io import BytesIO
 
-from windows import Window, getWindows
+from windows import Window, getWindows, dispCurrentWindow
 
 iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
 
@@ -91,6 +92,13 @@ windows = sorted(windows, key=lambda window: window.area) # arrange windows in o
 # Hook scroll events
 mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving the cursor)
 
+# Setup interactive figure
+plt.ion()  # enable interactive mode
+fig = plt.figure()
+fig.subplots_adjust(left=0, right=1, top=1, bottom=0)  # remove padding
+fig.canvas.manager.full_screen_toggle() # open figure in fullscreen mode
+plt.show()
+
 while True:
     # Exit program if ESC key pressed
     if keyboard.is_pressed("esc"):
@@ -108,9 +116,6 @@ while True:
         mouse.unhook_all()
         break
 
-    # Temporarily add delay
-    time.sleep(0.05)
-
     x, y = mouse.get_position() # return current position of cursor
     # print(x)
     # print(y)
@@ -119,7 +124,7 @@ while True:
                                             # loop through all windows and update property in window object to indicate if the cursor is inside the window
                                             # output the bbox window with index iRank and capped iRank
 
-    # displayCurrentWindow() # grey out area around the region spanned by the current window
+    dispCurrentWindow(fig, currentWindow, screen) # grey out area around the region spanned by the current window
 
 
 # edit() # bring up GUI to edit tag/annotate screnshot
