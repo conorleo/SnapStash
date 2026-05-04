@@ -1,4 +1,5 @@
 import keyboard
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mouse
 from mouse import WheelEvent
@@ -93,6 +94,7 @@ windows = sorted(windows, key=lambda window: window.area) # arrange windows in o
 mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving the cursor)
 
 # Setup interactive figure
+mpl.rcParams['toolbar'] = 'None' # hide navigation toolbar in all figures
 plt.ion()  # enable interactive mode
 fig = plt.figure()
 fig.subplots_adjust(left=0, right=1, top=1, bottom=0)  # remove padding
