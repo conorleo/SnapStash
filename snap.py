@@ -1,3 +1,4 @@
+import datetime
 import keyboard
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -152,7 +153,7 @@ while True:
         print("\nLeft-click detected. Exiting...")
         screenshot = screen.crop(currentWindow.bbox) # crop img to region defined by current window
         # tag() # tag the img
-        # save() # save the img
+        screenshot.save(f"snaps/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png","PNG") # save the img
         copyToClipboard(screenshot) # copy screenshot to clipboard
         mouse.unhook_all()
         break
