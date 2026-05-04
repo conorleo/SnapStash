@@ -201,5 +201,5 @@ def getWindows(img, isDebug=False):
 if __name__ == "__main__":
     from PIL import Image
 
-    img = Image.open("screen.png")
+    img = Image.open("snaps/screen.png")
     getWindows(img, True)
