@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import mouse
 from mouse import WheelEvent
 from PIL import ImageGrab
+import screeninfo
 
 # Copy to clipboard
 import win32clipboard as clip
@@ -46,33 +47,33 @@ def copyToClipboard(img):
     clip.SetClipboardData(win32con.CF_DIB, data)  # set the clipboard data to the DIB format image
     clip.CloseClipboard()  # close the clipboard
 
-def isCursorInWindow(window, x, y):
+def isCursorInWindow(window):
     """
-    Indicate if point x,y is inside the queried window.
+    Indicate if cursor is inside the queried window.
     Args:
         window (Window): Window object.
-        x (int): x-position.
-        y (int): y-position.
     Returns:
-        isInWindow (bool): True implies the point x,y is inside the window. False implies it is outside the window.
+        isInWindow (bool): True implies the cursor is inside the window. False implies it is outside the window.
     """
+    x, y = mouse.get_position() # return current position of cursor
+    # print(x)
+    # print(y)
+
     if x > window.bbox[0] and x < window.bbox[2] and y > window.bbox[1] and y < window.bbox[3]:
         return True
     else:
         return False
 
-def getCurrentWindow(windows, x, y, iRank):
+def getCurrentWindow(windows, iRank):
     """
     Return currently selected window.
     Args:
         windows (list): List of Window objects present in current screenshot.
-        x (int): Cursor x-position on screen.
-        y (int): Cursor y-position on screen.
         iRank (int): Index of windows list corresponding to current window.
     Returns:
         curr_window (Window): Current window.
     """
-    windowsContainingCursor = [window for window in windows if isCursorInWindow(window, x, y)] # isolate windows containing the cursor
+    windowsContainingCursor = [window for window in windows if isCursorInWindow(window)] # isolate windows containing the cursor
 
     if len(windowsContainingCursor) == 0:
         return windows[-1] # return full screen (largest area) if cursor is not on the screen
@@ -82,8 +83,21 @@ def getCurrentWindow(windows, x, y, iRank):
     
     return windowsContainingCursor[iRank]
 
-
-screen = ImageGrab.grab() # capture current screen
+# Capture current screen
+monitors = screeninfo.get_monitors() # get monitor dimensions
+for monitor in monitors:
+    screenWindow = Window( # define bounding box of monitors (left, top, right, bottom)
+        (
+            monitor.x,
+            monitor.y,
+            monitor.x + monitor.width,
+            monitor.y + monitor.height
+        )
+    )
+    if isCursorInWindow(screenWindow):
+        screen = ImageGrab.grab(bbox=screenWindow.bbox, all_screens=True) # capture current screen
+        # screen.show()
+        break
 
 windows = getWindows(screen) # output list of windows identified in current screen
 
@@ -120,11 +134,7 @@ while True:
         mouse.unhook_all()
         break
 
-    x, y = mouse.get_position() # return current position of cursor
-    # print(x)
-    # print(y)
-
-    currentWindow = getCurrentWindow(windows,x,y,iRank)     # get currently selected window (input cursor position and currently selected bbox area ranking)
+    currentWindow = getCurrentWindow(windows,iRank)     # get currently selected window (input cursor position and currently selected bbox area ranking)
                                             # loop through all windows and update property in window object to indicate if the cursor is inside the window
                                             # output the bbox window with index iRank and capped iRank
 
