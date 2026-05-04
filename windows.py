@@ -51,7 +51,7 @@ def dispCurrentWindow(fig, currentWindow, img):
     ax.imshow(gray_rbg, aspect='auto', origin='upper', interpolation='nearest')
     currentWindow.plot() # plot bounding box perimeter
     fig.canvas.draw_idle() # update fig
-    plt.pause(0.1) #  pause to allow fig to render
+    plt.pause(0.0001) #  pause to allow fig to render
 
 
 def poly2Rect(poly):

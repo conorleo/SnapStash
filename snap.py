@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import mouse
 from mouse import WheelEvent
 from PIL import ImageGrab
-import time
 
 # Copy to clipboard
 import win32clipboard as clip
