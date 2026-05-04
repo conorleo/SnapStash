@@ -5,6 +5,8 @@ import numpy as np
 class Window:
     def __init__(self, bbox=(0,0,0,0)):
         self.bbox = bbox # (left, top, right, bottom), (x0, y0, x1, y1) where 0 is the top-left corner and 1 is the bottom-right corner of the bounding box
+        self.x = self.bbox[0] # top-left x coordinate
+        self.y = self.bbox[1] # top-left y coordinate
         self.dx = self.bbox[2] - self.bbox[0] # horizontal side length, (x1 - x0)
         self.dy = self.bbox[3] - self.bbox[1] # vertical side length, (y1 - y0)
         self.area = self.calcArea() # area of the bounding box
