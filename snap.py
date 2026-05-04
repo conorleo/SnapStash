@@ -97,8 +97,11 @@ mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving th
 mpl.rcParams['toolbar'] = 'None' # hide navigation toolbar in all figures
 plt.ion()  # enable interactive mode
 fig = plt.figure()
-fig.subplots_adjust(left=0, right=1, top=1, bottom=0)  # remove padding
+fig.set_size_inches(screen.size[0] / fig.dpi, screen.size[1] / fig.dpi)
+fig.subplots_adjust(left=0, right=1, top=1, bottom=0)  # remove white-space padding around axes
+fig.add_axes([0, 0, 1, 1])  # ensure axes fill the entire figure
 fig.canvas.manager.full_screen_toggle() # open figure in fullscreen mode
+
 plt.show()
 
 while True:
