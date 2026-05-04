@@ -110,10 +110,25 @@ mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving th
 mpl.rcParams['toolbar'] = 'None' # hide navigation toolbar in all figures
 plt.ion()  # enable interactive mode
 fig = plt.figure()
+
+# Open fig on current screen
+figManager = plt.get_current_fig_manager()
+figManager.window.overrideredirect(True) # remove title bar (minimise, maximise, close) and borders
+try:
+    # Works for Qt backend
+    figManager.window.setGeometry(screenWindow.x, screenWindow.y, screenWindow.dx, screenWindow.dy)
+except Exception:
+    try:
+        # Works for TkAgg backend
+        figManager.window.wm_geometry(f"{screenWindow.dx}x{screenWindow.dy}+{screenWindow.x}+{screenWindow.y}")
+    except Exception as e:
+        print("Could not set window position:", e)
+figManager.window.update_idletasks()
 fig.set_size_inches(screen.size[0] / fig.dpi, screen.size[1] / fig.dpi)
 fig.subplots_adjust(left=0, right=1, top=1, bottom=0)  # remove white-space padding around axes
-fig.add_axes([0, 0.2, 0.8, 0.8])  # ensure axes fill the entire figure
-fig.canvas.manager.full_screen_toggle() # open figure in fullscreen mode
+fig.add_axes([0, 0, 1, 1])  # ensure axes fill the entire figure
+# figManager.window.state('zoomed')
+# figManager.full_screen_toggle() # open figure in fullscreen mode
 
 plt.show()
 
