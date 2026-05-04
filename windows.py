@@ -43,7 +43,7 @@ def dispCurrentWindow(fig, currentWindow, img):
     gray_rbg = np.stack((gray,)*3, axis=-1)  # make grayscale image 3-channel to accommodate later rgb addition
 
     # replace current window with rgb image (surrounding area grayscale)
-    gray_rbg[currentWindow.bbox[1]:currentWindow.bbox[3]][currentWindow.bbox[0]:currentWindow.bbox[2]] = rgb[currentWindow.bbox[1]:currentWindow.bbox[3]][currentWindow.bbox[0]:currentWindow.bbox[2]]
+    gray_rbg[currentWindow.bbox[1]:currentWindow.bbox[3], currentWindow.bbox[0]:currentWindow.bbox[2]] = rgb[currentWindow.bbox[1]:currentWindow.bbox[3], currentWindow.bbox[0]:currentWindow.bbox[2]]
 
     ax = fig.gca()
     ax.clear()
