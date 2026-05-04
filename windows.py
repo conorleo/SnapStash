@@ -48,7 +48,7 @@ def dispCurrentWindow(fig, currentWindow, img):
     ax.axis('off')  # hide axes, ticks, and labels
     ax.set_xlim(0, gray_rbg.shape[1])
     ax.set_ylim(gray_rbg.shape[0], 0)
-    ax.imshow(gray_rbg, aspect='equal', origin='upper', interpolation='nearest')
+    ax.imshow(gray_rbg, aspect='auto', origin='upper', interpolation='nearest')
     currentWindow.plot() # plot bounding box perimeter
     fig.canvas.draw_idle() # update fig
     plt.pause(0.1) #  pause to allow fig to render
