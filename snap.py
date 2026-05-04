@@ -47,11 +47,12 @@ def copyToClipboard(img):
     clip.SetClipboardData(win32con.CF_DIB, data)  # set the clipboard data to the DIB format image
     clip.CloseClipboard()  # close the clipboard
 
-def isCursorInWindow(window):
+def isCursorInWindow(window, origin=(0,0)):
     """
     Indicate if cursor is inside the queried window.
     Args:
         window (Window): Window object.
+        origin (tuple): global x,y coordinates of top-left corner of the selected screen containing the quried window.
     Returns:
         isInWindow (bool): True implies the cursor is inside the window. False implies it is outside the window.
     """
@@ -59,21 +60,27 @@ def isCursorInWindow(window):
     # print(x)
     # print(y)
 
+    # Convert from global coordinates to local screen coordinates
+    x -= origin[0]
+    y -= origin[1]
+
+    # Check if cursor is within the window's bounding box
     if x > window.bbox[0] and x < window.bbox[2] and y > window.bbox[1] and y < window.bbox[3]:
         return True
     else:
         return False
 
-def getCurrentWindow(windows, iRank):
+def getCurrentWindow(windows, iRank, screenOrigin):
     """
     Return currently selected window.
     Args:
         windows (list): List of Window objects present in current screenshot.
         iRank (int): Index of windows list corresponding to current window.
+        screenOrigin (tuple): Global x,y coordinates of top-left corner of the selected screen containing the windows.
     Returns:
         curr_window (Window): Current window.
     """
-    windowsContainingCursor = [window for window in windows if isCursorInWindow(window)] # isolate windows containing the cursor
+    windowsContainingCursor = [window for window in windows if isCursorInWindow(window, screenOrigin)] # isolate windows containing the cursor
 
     if len(windowsContainingCursor) == 0:
         return windows[-1] # return full screen (largest area) if cursor is not on the screen
@@ -99,6 +106,7 @@ for monitor in monitors:
         # screen.show()
         break
 
+screenOrigin = (screenWindow.x, screenWindow.y) # global coordinates of top-left corner of selected screen
 windows = getWindows(screen) # output list of windows identified in current screen
 
 windows = sorted(windows, key=lambda window: window.area) # arrange windows in order of increasing area
@@ -149,7 +157,7 @@ while True:
         mouse.unhook_all()
         break
 
-    currentWindow = getCurrentWindow(windows,iRank)     # get currently selected window (input cursor position and currently selected bbox area ranking)
+    currentWindow = getCurrentWindow(windows,iRank, screenOrigin)     # get currently selected window (input cursor position and currently selected bbox area ranking)
                                             # loop through all windows and update property in window object to indicate if the cursor is inside the window
                                             # output the bbox window with index iRank and capped iRank
 
