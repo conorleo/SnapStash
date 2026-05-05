@@ -13,6 +13,7 @@ import win32clipboard as clip
 import win32con
 from io import BytesIO
 
+from tag import collectTagsForSnap
 from windows import Window, getWindows, dispCurrentWindow
 
 iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
@@ -248,10 +249,13 @@ while True:
 
         screenshot = screen.crop(currentWindow.bbox)
         screenshot = screenshot.convert("RGB")
+        tags = collectTagsForSnap(
+            screenBounds=(screenWindow.x, screenWindow.y, screenWindow.dx, screenWindow.dy)
+        )
         screenshot.save(
             f"snaps/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jpg",
             "JPEG",
-            exif=buildJpegExifForWindowsTags(["code", "snap_stash"]) # append metadata tag to image
+            exif=buildJpegExifForWindowsTags(tags) # append metadata tag to image
         ) # save the img
         copyToClipboard(screenshot) # copy screenshot to clipboard
         mouse.unhook_all()
