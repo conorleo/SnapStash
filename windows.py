@@ -45,6 +45,9 @@ def dispCurrentWindow(fig, currentWindow, img):
     # replace current window with rgb image (surrounding area grayscale)
     gray_rbg[currentWindow.bbox[1]:currentWindow.bbox[3], currentWindow.bbox[0]:currentWindow.bbox[2]] = rgb[currentWindow.bbox[1]:currentWindow.bbox[3], currentWindow.bbox[0]:currentWindow.bbox[2]]
 
+    manager = fig.canvas.manager
+    first_render = not getattr(fig, '_has_been_shown', False)
+
     ax = fig.gca()
     ax.clear()
     ax.axis('off')  # hide axes, ticks, and labels
@@ -52,8 +55,21 @@ def dispCurrentWindow(fig, currentWindow, img):
     ax.set_ylim(gray_rbg.shape[0], 0)
     ax.imshow(gray_rbg, aspect='auto', origin='upper', interpolation='nearest')
     currentWindow.plot() # plot bounding box perimeter
-    fig.canvas.draw_idle() # update fig
-    plt.pause(0.0001) #  pause to allow fig to render
+
+    if first_render:
+        fig.canvas.draw()  # paint content before showing the window
+        try:
+            manager.window.deiconify()
+        except Exception:
+            try:
+                manager.window.show()
+            except Exception:
+                pass
+        fig._has_been_shown = True
+    else:
+        fig.canvas.draw_idle() # update fig
+
+    plt.pause(0.0001) # pause to allow fig to render
 
 
 def poly2Rect(poly):

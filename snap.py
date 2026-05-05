@@ -200,7 +200,13 @@ fig.add_axes([0, 0, 1, 1])  # ensure axes fill the entire figure
 # figManager.window.state('zoomed')
 # figManager.full_screen_toggle() # open figure in fullscreen mode
 
-plt.show()
+# Keep the figure hidden until the first rendered frame is ready.
+try:
+    figManager.window.withdraw()
+except Exception:
+    pass
+
+plt.ion()  # restore interactive mode once the figure is hidden
 
 while True:
     # Exit program if ESC key pressed
