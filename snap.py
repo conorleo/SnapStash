@@ -198,14 +198,15 @@ while True:
 
             x, y = mouse.get_position()
             dragEnd = (x - screenOrigin[0], y - screenOrigin[1])
-            plt.pause(0.01)  # keep matplotlib window responsive while held
+
+            dragWindow = Window(getDragBBox(dragStart, dragEnd, screen.size))
+            dispCurrentWindow(fig, dragWindow, screen)
 
         # Click-and-drag active if cursor has moved more than the threshold no. of pixels whilst the left-click has remained pressed
         isDrag = abs(dragEnd[0] - dragStart[0]) >= moveThreshold or abs(dragEnd[1] - dragStart[1]) >= moveThreshold
-
         if isDrag:
             # Overwrite current window with manually created click-and-drag box
-            currentWindow = Window(getDragBBox(dragStart, dragEnd, screen.size))
+            currentWindow = dragWindow
 
         screenshot = screen.crop(currentWindow.bbox)
         # tag() # tag the img
