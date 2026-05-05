@@ -14,7 +14,7 @@ class Window:
     def calcArea(self):
         return self.dx*self.dy
     
-    def plot(self):
+    def plot(self, ax=None):
         x = [
             self.bbox[0],           # top-left
             self.bbox[0] + self.dx, # top-right
@@ -29,7 +29,10 @@ class Window:
             self.bbox[1] + self.dy, # bottom-left
             self.bbox[1]            # repeat top-left
         ]
-        plt.plot(x,y)
+        if ax is None:
+            plt.plot(x, y)
+        else:
+            ax.plot(x, y)
     
 
 def dispCurrentWindow(fig, currentWindow, img):
@@ -54,7 +57,7 @@ def dispCurrentWindow(fig, currentWindow, img):
     ax.set_xlim(0, gray_rbg.shape[1])
     ax.set_ylim(gray_rbg.shape[0], 0)
     ax.imshow(gray_rbg, aspect='auto', origin='upper', interpolation='nearest')
-    currentWindow.plot() # plot bounding box perimeter
+    currentWindow.plot(ax=ax) # plot bounding box perimeter
 
     if first_render:
         fig.canvas.draw()  # paint content before showing the window

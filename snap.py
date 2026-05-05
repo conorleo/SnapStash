@@ -1,7 +1,6 @@
 import datetime
 import threading
 import keyboard
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mouse
 import piexif # image metadata
@@ -177,7 +176,7 @@ threading.Thread(target=detectWindowsAsync, daemon=True).start()
 mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving the cursor)
 
 # Setup interactive figure
-mpl.rcParams['toolbar'] = 'None' # hide navigation toolbar in all figures
+plt.rcParams['toolbar'] = 'None' # hide navigation toolbar in all figures
 plt.ion()  # enable interactive mode
 fig = plt.figure()
 
