@@ -91,6 +91,34 @@ def getCurrentWindow(windows, iRank, screenOrigin):
     
     return windowsContainingCursor[iRank]
 
+def clampPointToScreen(point, screenSize):
+    """
+    Clamp point to valid local pixel coordinates on screen image.
+    Args:
+        point (tuple): (x, y) point in local screen coordinates.
+        screenSize (tuple): (width, height) of screen image.
+    Returns:
+        tuple: clamped (x, y) point.
+    """
+    x = max(0, min(point[0], screenSize[0] - 1))
+    y = max(0, min(point[1], screenSize[1] - 1))
+    return (x, y)
+
+def getDragBBox(start, end, screenSize):
+    """
+    Build crop bbox from drag start/end local coordinates.
+    Returns bbox as (left, top, right, bottom) suitable for PIL crop.
+    """
+    # Cap bbox dimensions to screen boundaries
+    start = clampPointToScreen(start, screenSize)
+    end = clampPointToScreen(end, screenSize)
+
+    left = min(start[0], end[0])
+    top = min(start[1], end[1])
+    right = max(start[0], end[0]) + 1
+    bottom = max(start[1], end[1]) + 1
+    return (left, top, right, bottom)
+
 # Capture current screen
 monitors = screeninfo.get_monitors() # get monitor dimensions
 for monitor in monitors:
@@ -148,19 +176,43 @@ while True:
         mouse.unhook_all()
         break
 
-    # Save snap if left-click is detected
+    currentWindow = getCurrentWindow(windows,iRank, screenOrigin)     # get currently selected window (input cursor position and currently selected bbox area ranking)
+                                            # loop through all windows and update property in window object to indicate if the cursor is inside the window
+                                            # output the bbox window with index iRank and capped iRank
+
+    # Save snap on mouse release:
+    # - click -> crop selected window
+    # - drag  -> crop dragged rectangle
     if mouse.is_pressed("left"):
-        print("\nLeft-click detected. Exiting...")
-        screenshot = screen.crop(currentWindow.bbox) # crop img to region defined by current window
+        moveThreshold = 5  # pixels, threshold beyond which action is considered a click-and-drag instead of a click
+        x, y = mouse.get_position()
+        dragStart = (x - screenOrigin[0], y - screenOrigin[1])
+        dragEnd = dragStart
+
+        # Click-and-drag
+        while mouse.is_pressed("left"):
+            if keyboard.is_pressed("esc"):
+                print("\nESC key detected. Exiting...")
+                mouse.unhook_all()
+                raise SystemExit
+
+            x, y = mouse.get_position()
+            dragEnd = (x - screenOrigin[0], y - screenOrigin[1])
+            plt.pause(0.01)  # keep matplotlib window responsive while held
+
+        # Click-and-drag active if cursor has moved more than the threshold no. of pixels whilst the left-click has remained pressed
+        isDrag = abs(dragEnd[0] - dragStart[0]) >= moveThreshold or abs(dragEnd[1] - dragStart[1]) >= moveThreshold
+
+        if isDrag:
+            # Overwrite current window with manually created click-and-drag box
+            currentWindow = Window(getDragBBox(dragStart, dragEnd, screen.size))
+
+        screenshot = screen.crop(currentWindow.bbox)
         # tag() # tag the img
         screenshot.save(f"snaps/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png","PNG") # save the img
         copyToClipboard(screenshot) # copy screenshot to clipboard
         mouse.unhook_all()
         break
-
-    currentWindow = getCurrentWindow(windows,iRank, screenOrigin)     # get currently selected window (input cursor position and currently selected bbox area ranking)
-                                            # loop through all windows and update property in window object to indicate if the cursor is inside the window
-                                            # output the bbox window with index iRank and capped iRank
 
     dispCurrentWindow(fig, currentWindow, screen) # grey out area around the region spanned by the current window
 
