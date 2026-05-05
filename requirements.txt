@@ -7,3 +7,4 @@ pillow          # take screenshots
 pywin32         # add imgs to clipboard
 tk              # GUI
 screeninfo      # monitor dimensions
+piexif          # write Windows Explorer JPEG tags

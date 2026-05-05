@@ -3,6 +3,7 @@ import keyboard
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mouse
+import piexif # image metadata
 from mouse import WheelEvent
 from PIL import ImageGrab
 import screeninfo
@@ -15,6 +16,28 @@ from io import BytesIO
 from windows import Window, getWindows, dispCurrentWindow
 
 iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
+
+def buildJpegExifForWindowsTags(tags):
+    """
+    Build JPEG EXIF metadata for Windows Explorer "Tags".
+    Args:
+        tags (list[str]): User-defined image tags.
+    Returns:
+        bytes: EXIF bytes for JPEG save.
+    """
+    windowsTagString = ";".join(tags)
+    # Windows stores XPKeywords as UTF-16LE with trailing null terminator.
+    xpKeywords = windowsTagString.encode("utf-16le") + b"\x00\x00"
+    exifDict = {
+        "0th": {
+            piexif.ImageIFD.XPKeywords: xpKeywords
+        },
+        "Exif": {},
+        "GPS": {},
+        "1st": {},
+        "thumbnail": None
+    }
+    return piexif.dump(exifDict)
 
 def on_scroll(event):
     """
@@ -209,8 +232,12 @@ while True:
             currentWindow = dragWindow
 
         screenshot = screen.crop(currentWindow.bbox)
-        # tag() # tag the img
-        screenshot.save(f"snaps/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png","PNG") # save the img
+        screenshot = screenshot.convert("RGB")
+        screenshot.save(
+            f"snaps/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jpg",
+            "JPEG",
+            exif=buildJpegExifForWindowsTags(["code", "snap_stash"]) # append metadata tag to image
+        ) # save the img
         copyToClipboard(screenshot) # copy screenshot to clipboard
         mouse.unhook_all()
         break
