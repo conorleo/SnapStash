@@ -1,4 +1,5 @@
 import datetime
+import threading
 import keyboard
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -159,9 +160,18 @@ for monitor in monitors:
         break
 
 screenOrigin = (screenWindow.x, screenWindow.y) # global coordinates of top-left corner of selected screen
-windows = getWindows(screen) # output list of windows identified in current screen
+windows = [Window(screen.getbbox())] # fallback immediately to full-screen selection
 
-windows = sorted(windows, key=lambda window: window.area) # arrange windows in order of increasing area
+def detectWindowsAsync():
+    """
+    Detect windows in the background so the UI can appear faster.
+    """
+    global windows
+    detected = getWindows(screen) # output list of windows identified in current screen
+    windows = sorted(detected, key=lambda window: window.area) # arrange windows in order of increasing area
+
+# Kick off expensive edge/contour detection without blocking startup.
+threading.Thread(target=detectWindowsAsync, daemon=True).start()
 
 # Hook scroll events
 mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving the cursor)
