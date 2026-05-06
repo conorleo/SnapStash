@@ -1,5 +1,6 @@
 import datetime
 import threading
+import time
 import keyboard
 import matplotlib.pyplot as plt
 import mouse
@@ -16,7 +17,8 @@ from io import BytesIO
 from tag import collectTagsForSnap
 from windows import Window, getWindows, dispCurrentWindow
 
-iRank = 0 # index of the current selected window out of the set of windows currently containing the cursor (0 => smallest window containing the cursor will be selected)
+capture_lock = threading.Lock()
+capture_requested = threading.Event()
 
 def buildJpegExifForWindowsTags(tags):
     """
@@ -40,21 +42,20 @@ def buildJpegExifForWindowsTags(tags):
     }
     return piexif.dump(exifDict)
 
-def on_scroll(event):
+def on_scroll(event, rank_state):
     """
     Callback function triggered when the mouse is scrolled.
     event.delta > 0 means scroll up, event.delta < 0 means scroll down.
     Scroll up decrements iRank by 1 (zoom in)
     Scroll down increments iRank by 1 (zoom out)
     """
-    global iRank
     if isinstance(event, WheelEvent): # only action interactions with the scroll wheel
         if event.delta > 0:  # Scroll up, zoom in
-            iRank -= 1
-            print(f"iRank decremented: {iRank}")
+            rank_state["iRank"] -= 1
+            print(f"iRank decremented: {rank_state['iRank']}")
         elif event.delta < 0:  # Scroll down, zoom out
-            iRank += 1
-            print(f"iRank incremented: {iRank}")
+            rank_state["iRank"] += 1
+            print(f"iRank incremented: {rank_state['iRank']}")
 
 def copyToClipboard(img):
     """
@@ -143,125 +144,157 @@ def getDragBBox(start, end, screenSize):
     bottom = max(start[1], end[1]) + 1
     return (left, top, right, bottom)
 
-# Capture current screen
-monitors = screeninfo.get_monitors() # get monitor dimensions
-for monitor in monitors:
-    screenWindow = Window( # define bounding box of monitors (left, top, right, bottom)
-        (
-            monitor.x,
-            monitor.y,
-            monitor.x + monitor.width,
-            monitor.y + monitor.height
+def getCurrentScreenCapture():
+    """
+    Capture and return the monitor under the cursor.
+    Returns:
+        tuple[Window, PIL.Image.Image] | (None, None): Screen window and image.
+    """
+    monitors = screeninfo.get_monitors()
+    for monitor in monitors:
+        screenWindow = Window(
+            (
+                monitor.x,
+                monitor.y,
+                monitor.x + monitor.width,
+                monitor.y + monitor.height
+            )
         )
-    )
-    if isCursorInWindow(screenWindow):
-        screen = ImageGrab.grab(bbox=screenWindow.bbox, all_screens=True) # capture current screen
-        # screen.show()
-        break
+        if isCursorInWindow(screenWindow):
+            screen = ImageGrab.grab(bbox=screenWindow.bbox, all_screens=True)
+            return screenWindow, screen
+    return None, None
 
-screenOrigin = (screenWindow.x, screenWindow.y) # global coordinates of top-left corner of selected screen
-windows = [Window(screen.getbbox())] # fallback immediately to full-screen selection
-
-def detectWindowsAsync():
+def runCaptureSession():
     """
-    Detect windows in the background so the UI can appear faster.
+    Run one interactive screenshot capture session.
     """
-    global windows
-    detected = getWindows(screen) # output list of windows identified in current screen
-    windows = sorted(detected, key=lambda window: window.area) # arrange windows in order of increasing area
+    if not capture_lock.acquire(blocking=False):
+        print("Capture already in progress, ignoring hotkey.")
+        return
 
-# Kick off expensive edge/contour detection without blocking startup.
-threading.Thread(target=detectWindowsAsync, daemon=True).start()
-
-# Hook scroll events
-mouse.hook(on_scroll) # will trigger callback on any mouse event (even moving the cursor)
-
-# Setup interactive figure
-plt.rcParams['toolbar'] = 'None' # hide navigation toolbar in all figures
-plt.ion()  # enable interactive mode
-fig = plt.figure()
-
-# Open fig on current screen
-figManager = plt.get_current_fig_manager()
-figManager.window.overrideredirect(True) # remove title bar (minimise, maximise, close) and borders
-try:
-    # Works for Qt backend
-    figManager.window.setGeometry(screenWindow.x, screenWindow.y, screenWindow.dx, screenWindow.dy)
-except Exception:
     try:
-        # Works for TkAgg backend
-        figManager.window.wm_geometry(f"{screenWindow.dx}x{screenWindow.dy}+{screenWindow.x}+{screenWindow.y}")
-    except Exception as e:
-        print("Could not set window position:", e)
-figManager.window.update_idletasks()
-fig.set_size_inches(screen.size[0] / fig.dpi, screen.size[1] / fig.dpi)
-fig.subplots_adjust(left=0, right=1, top=1, bottom=0)  # remove white-space padding around axes
-fig.add_axes([0, 0, 1, 1])  # ensure axes fill the entire figure
-# figManager.window.state('zoomed')
-# figManager.full_screen_toggle() # open figure in fullscreen mode
+        screenWindow, screen = getCurrentScreenCapture()
+        if screenWindow is None or screen is None:
+            print("No screen detected at cursor position.")
+            return
 
-# Keep the figure hidden until the first rendered frame is ready.
-try:
-    figManager.window.withdraw()
-except Exception:
-    pass
+        screenOrigin = (screenWindow.x, screenWindow.y)
+        windows = [Window(screen.getbbox())] # fallback immediately to full-screen selection
+        rank_state = {"iRank": 0}
 
-plt.ion()  # restore interactive mode once the figure is hidden
+        def detectWindowsAsync():
+            nonlocal windows
+            detected = getWindows(screen)
+            windows = sorted(detected, key=lambda window: window.area)
 
-while True:
-    # Exit program if ESC key pressed
-    if keyboard.is_pressed("esc"):
-        print("\nESC key detected. Exiting...")
-        mouse.unhook_all()
-        break
+        # Kick off expensive edge/contour detection without blocking startup.
+        threading.Thread(target=detectWindowsAsync, daemon=True).start()
 
-    currentWindow = getCurrentWindow(windows,iRank, screenOrigin)     # get currently selected window (input cursor position and currently selected bbox area ranking)
-                                            # loop through all windows and update property in window object to indicate if the cursor is inside the window
-                                            # output the bbox window with index iRank and capped iRank
+        # Hook scroll events for this session only.
+        mouse.hook(lambda event: on_scroll(event, rank_state))
 
-    # Save snap on mouse release:
-    # - click -> crop selected window
-    # - drag  -> crop dragged rectangle
-    if mouse.is_pressed("left"):
-        moveThreshold = 5  # pixels, threshold beyond which action is considered a click-and-drag instead of a click
-        x, y = mouse.get_position()
-        dragStart = (x - screenOrigin[0], y - screenOrigin[1])
-        dragEnd = dragStart
+        # Setup interactive figure
+        plt.rcParams['toolbar'] = 'None'
+        plt.ion()
+        fig = plt.figure()
 
-        # Click-and-drag
-        while mouse.is_pressed("left"):
+        figManager = plt.get_current_fig_manager()
+        figManager.window.overrideredirect(True)
+        try:
+            # Works for Qt backend
+            figManager.window.setGeometry(screenWindow.x, screenWindow.y, screenWindow.dx, screenWindow.dy)
+        except Exception:
+            try:
+                # Works for TkAgg backend
+                figManager.window.wm_geometry(f"{screenWindow.dx}x{screenWindow.dy}+{screenWindow.x}+{screenWindow.y}")
+            except Exception as e:
+                print("Could not set window position:", e)
+        figManager.window.update_idletasks()
+        fig.set_size_inches(screen.size[0] / fig.dpi, screen.size[1] / fig.dpi)
+        fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        fig.add_axes([0, 0, 1, 1])
+
+        # Keep the figure hidden until the first rendered frame is ready.
+        try:
+            figManager.window.withdraw()
+        except Exception:
+            pass
+
+        plt.ion()
+
+        while True:
+            # ESC cancels current capture session.
             if keyboard.is_pressed("esc"):
-                print("\nESC key detected. Exiting...")
-                mouse.unhook_all()
-                raise SystemExit
+                print("\nESC key detected. Capture cancelled.")
+                break
 
-            x, y = mouse.get_position()
-            dragEnd = (x - screenOrigin[0], y - screenOrigin[1])
+            currentWindow = getCurrentWindow(windows, rank_state["iRank"], screenOrigin)
 
-            dragWindow = Window(getDragBBox(dragStart, dragEnd, screen.size))
-            dispCurrentWindow(fig, dragWindow, screen)
+            # Save snap on mouse release:
+            # - click -> crop selected window
+            # - drag  -> crop dragged rectangle
+            if mouse.is_pressed("left"):
+                moveThreshold = 5
+                x, y = mouse.get_position()
+                dragStart = (x - screenOrigin[0], y - screenOrigin[1])
+                dragEnd = dragStart
 
-        # Click-and-drag active if cursor has moved more than the threshold no. of pixels whilst the left-click has remained pressed
-        isDrag = abs(dragEnd[0] - dragStart[0]) >= moveThreshold or abs(dragEnd[1] - dragStart[1]) >= moveThreshold
-        if isDrag:
-            # Overwrite current window with manually created click-and-drag box
-            currentWindow = dragWindow
+                # Click-and-drag
+                while mouse.is_pressed("left"):
+                    if keyboard.is_pressed("esc"):
+                        print("\nESC key detected. Capture cancelled.")
+                        return
 
-        screenshot = screen.crop(currentWindow.bbox)
-        screenshot = screenshot.convert("RGB")
-        tags = collectTagsForSnap(
-            screenBounds=(screenWindow.x, screenWindow.y, screenWindow.dx, screenWindow.dy)
-        )
-        screenshot.save(
-            f"snaps/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jpg",
-            "JPEG",
-            exif=buildJpegExifForWindowsTags(tags) # append metadata tag to image
-        ) # save the img
-        copyToClipboard(screenshot) # copy screenshot to clipboard
+                    x, y = mouse.get_position()
+                    dragEnd = (x - screenOrigin[0], y - screenOrigin[1])
+
+                    dragWindow = Window(getDragBBox(dragStart, dragEnd, screen.size))
+                    dispCurrentWindow(fig, dragWindow, screen)
+
+                isDrag = abs(dragEnd[0] - dragStart[0]) >= moveThreshold or abs(dragEnd[1] - dragStart[1]) >= moveThreshold
+                if isDrag:
+                    currentWindow = dragWindow
+
+                screenshot = screen.crop(currentWindow.bbox).convert("RGB")
+                tags = collectTagsForSnap(
+                    screenBounds=(screenWindow.x, screenWindow.y, screenWindow.dx, screenWindow.dy)
+                )
+                screenshot.save(
+                    f"snaps/{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.jpg",
+                    "JPEG",
+                    exif=buildJpegExifForWindowsTags(tags)
+                )
+                copyToClipboard(screenshot)
+                break
+
+            dispCurrentWindow(fig, currentWindow, screen)
+
+    finally:
         mouse.unhook_all()
-        break
+        plt.close("all")
+        capture_lock.release()
 
-    dispCurrentWindow(fig, currentWindow, screen) # grey out area around the region spanned by the current window
+def main():
+    """
+    Start lightweight background listener and wait for PrtScn.
+    """
+    print("SnapStash listener running. Press PrtScn to capture. Press Ctrl+C to exit.")
+    # Swallow OS PrtScn behavior, but defer capture work to main thread.
+    keyboard.on_press_key(
+        "print screen",
+        lambda _event: capture_requested.set(),
+        suppress=True
+    )
+
+    while True:
+        if capture_requested.wait(timeout=0.1):
+            capture_requested.clear()
+            runCaptureSession()
+        time.sleep(0.01)
+
+if __name__ == "__main__":
+    main()
 
 
 # edit() # bring up GUI to edit tag/annotate screnshot
